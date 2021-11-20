@@ -1,0 +1,3 @@
+[submodule "sfizz"]
+	path = sfizz
+	url = https://github.com/paulfd/sfizz
