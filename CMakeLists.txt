@@ -11,5 +11,9 @@ add_executable(sfizz-webaudio)
 target_sources(sfizz-webaudio PRIVATE sfizz_webaudio.cpp)
 configure_file(export-es6.js export-es6.js COPYONLY)
 target_link_libraries(sfizz-webaudio PRIVATE sfizz::sfizz)
-set_target_properties(sfizz-webaudio PROPERTIES LINK_FLAGS 
-    "--bind --post-js export-es6.js -s ENVIRONMENT=web -s SINGLE_FILE=1 -s WASM=1 -s WASM_ASYNC_COMPILATION=0")
+set_target_properties(sfizz-webaudio PROPERTIES 
+    LINK_FLAGS "--bind -s ENVIRONMENT=web -s ALLOW_MEMORY_GROWTH=1 -s SINGLE_FILE=1 -s WASM=1 -s WASM_ASYNC_COMPILATION=0"
+    OUTPUT_NAME sfizz.wasm
+)
+
+    

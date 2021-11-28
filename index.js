@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import SfizzNode from './sfizz-node.js';
 
 class DemoApp {
 
@@ -30,50 +31,60 @@ class DemoApp {
     this._container = document.getElementById('demo-app');
     this._toggleButton = document.getElementById('audio-toggle');
     this._toggleButton.addEventListener(
-        'mouseup', () => this._handleToggle());
-    this._toneButton = document.getElementById('play-tone');
+      'mouseup', () => this._handleToggle());
+    this._toneButton = document.getElementById('play-note');
     this._toneButton.addEventListener(
-        'mousedown', () => this._handleToneButton(true));
+      'mousedown', () => this._handleToneButton(true));
     this._toneButton.addEventListener(
-        'mouseup', () => this._handleToneButton(false));
-    
+      'mouseup', () => this._handleToneButton(false));
+
     this._toggleButton.disabled = false;
     this._toneButton.disabled = false;
-    this._container.style.pointerEvents = 'auto';
-    this._container.style.backgroundColor = '#D2E3FC';
   }
 
   async _initializeAudio() {
     this._context = new AudioContext();
-    await this._context.audioWorklet.addModule('./SynthProcessor.js');
-    this._synthNode = new AudioWorkletNode(this._context, 'wasm-synth');
-    this._volumeNode = new GainNode(this._context, {gain: 0.25});
-    this._synthNode.connect(this._volumeNode)
-                   .connect(this._context.destination);
+    this._context.audioWorklet.addModule('./sfizz-processor.js').then(() => {
+      this._synthNode = new SfizzNode(this._context);
+      this._volumeNode = new GainNode(this._context, { gain: 0.25 });
+      this._synthNode.connect(this._volumeNode)
+        .connect(this._context.destination);
 
-    if (!this._toggleState) this._context.suspend();
+      this._toggleButton.classList.remove(['disabled', 'loading']);
+      this._toneButton.classList.remove('disabled');
+      this._handleToggle();
+    });
   }
 
   _handleToggle() {
     this._toggleState = !this._toggleState;
     if (this._toggleState) {
       this._context.resume();
-      this._toggleButton.classList.replace('inactive', 'active');
+      this._toggleButton.textContent = 'Disable';
+      this._toggleButton.classList.remove('green');
+      this._toggleButton.classList.add('red');
     } else {
       this._context.suspend();
-      this._toggleButton.classList.replace('active', 'inactive');
+      this._toggleButton.classList.remove('red');
+      this._toggleButton.classList.add('green');
+      this._toggleButton.textContent = 'Enable';
     }
   }
 
+  _post(message) {
+    this._synthNode.port.postMessage(message);
+  }
+
   _handleToneButton(isDown) {
-    this._synthNode.port.postMessage(isDown);
+    isDown  ? this._post({ type: 'note_on', number: 60, value: 1.0 }) 
+            : this._post({ type: 'note_off', number: 60, value: 0.0 });
   }
 
   onWindowLoad() {
     document.body.addEventListener('click', () => {
       this._initializeAudio();
       this._initializeView();
-    }, {once: true});
+    }, { once: true });
   }
 }
 

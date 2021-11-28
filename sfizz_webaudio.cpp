@@ -11,15 +11,16 @@ public:
         synth.loadSfzString("default.sfz", "<region> sample=*saw");
     }
 
-    void noteOn(uint8_t note)
-    {
-        synth.hdNoteOn(0, note, 1.0f);
-    }
+    void load(std::string file) { synth.loadSfzString("file.sfz", file); }
 
-    void noteOff(uint8_t note)
-    {
-        synth.hdNoteOff(0, note, 0.0f);
-    }
+    void noteOn(int delay, uint8_t number, float value) { synth.hdNoteOn(delay, number, value); }
+    void noteOff(int delay, uint8_t number, float value) { synth.hdNoteOff(delay, number, value); }
+    void cc(int delay, uint8_t number, float value) { synth.hdcc(delay, number, value); }
+    void aftertouch(int delay, float value) { synth.hdChannelAftertouch(delay, value); }
+    void pitchWheel(int delay, float value) { synth.hdPitchWheel(delay, value); }
+
+    int numRegions() const { return synth.getNumRegions(); }
+    int numActiveVoices() const { return synth.getNumActiveVoices(); }
 
     void render(uintptr_t left, uintptr_t right, int32_t numFrames) {
         // Use type cast to hide the raw pointer in function arguments.
@@ -40,5 +41,10 @@ EMSCRIPTEN_BINDINGS(CLASS_Synthesizer) {
       .constructor<int32_t>()
       .function("noteOff", &SfizzWrapper::noteOff)
       .function("noteOn", &SfizzWrapper::noteOn)
+      .function("cc", &SfizzWrapper::cc)
+      .function("aftertouch", &SfizzWrapper::aftertouch)
+      .function("pitchWheel", &SfizzWrapper::pitchWheel)
+      .function("numRegions", &SfizzWrapper::numRegions)
+      .function("numActiveVoices", &SfizzWrapper::numActiveVoices)
       .function("render", &SfizzWrapper::render, allow_raw_pointers());
 }
