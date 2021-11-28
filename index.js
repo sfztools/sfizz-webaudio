@@ -21,10 +21,13 @@ class DemoApp {
     this._container = null;
     this._toggleButton = null;
     this._toneButton = null;
+    this._reloadButton = null;
     this._context = null;
     this._synthNode = null;
     this._volumeNode = null;
     this._toggleState = false;
+    this._sfzText = null;
+    this._ctrlDown = false;
   }
 
   _initializeView() {
@@ -37,9 +40,56 @@ class DemoApp {
       'mousedown', () => this._handleToneButton(true));
     this._toneButton.addEventListener(
       'mouseup', () => this._handleToneButton(false));
-
+    this._sfzText = document.getElementById('sfz-text');
+    this._reloadButton = document.getElementById('reload-text');
+    this._reloadButton.addEventListener(
+      'mouseup', () => this._post({ type: 'text', sfz: this._sfzText.value }));
     this._toggleButton.disabled = false;
     this._toneButton.disabled = false;
+  }
+
+  _setupKeyCaptures() {
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault(); // Prevent the Save dialog to open
+        this._post({ type: 'text', sfz: this._sfzText.value })
+      }
+    });
+  }
+
+  _setupWebMidi() {
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess()
+        .then((midiAccess) => {
+          console.log(midiAccess);
+          var inputs = midiAccess.inputs;
+          for (var input of midiAccess.inputs.values())
+            input.onmidimessage = this._dispatchMIDIMessage.bind(this);
+        }, () => console.log("MIDI connection failure"));
+    } else {
+      console.log('WebMIDI is not supported in this browser.');
+    }
+  }
+
+  _dispatchMIDIMessage(message) {
+    // console.log('Midi message:', message);
+    var command = message.data[0];
+    var note = message.data[1];
+    var velocity = (message.data.length > 2) ? message.data[2] : 0; // a velocity value might not be included with a noteOff command
+
+    switch (command) {
+      case 144: // noteOn
+        if (velocity > 0) {
+          this._post({ type: 'note_on', number: note, value: velocity / 127.0 })
+        } else {
+          this._post({ type: 'note_off', number: note, value: 0.0 })
+        }
+        break;
+      case 128: // noteOff
+        this._post({ type: 'note_off', number: note, value: 0.0 })
+        break;
+      // we could easily expand this switch statement to cover other types of commands such as controllers or sysex
+    }
   }
 
   async _initializeAudio() {
@@ -52,6 +102,7 @@ class DemoApp {
 
       this._toggleButton.classList.remove(['disabled', 'loading']);
       this._toneButton.classList.remove('disabled');
+      this._reloadButton.classList.remove('disabled');
       this._handleToggle();
     });
   }
@@ -76,14 +127,16 @@ class DemoApp {
   }
 
   _handleToneButton(isDown) {
-    isDown  ? this._post({ type: 'note_on', number: 60, value: 1.0 }) 
-            : this._post({ type: 'note_off', number: 60, value: 0.0 });
+    isDown ? this._post({ type: 'note_on', number: 60, value: 1.0 })
+      : this._post({ type: 'note_off', number: 60, value: 0.0 });
   }
 
   onWindowLoad() {
     document.body.addEventListener('click', () => {
       this._initializeAudio();
       this._initializeView();
+      this._setupKeyCaptures();
+      this._setupWebMidi();
     }, { once: true });
   }
 }

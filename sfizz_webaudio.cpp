@@ -11,7 +11,7 @@ public:
         synth.loadSfzString("default.sfz", "<region> sample=*saw");
     }
 
-    void load(std::string file) { synth.loadSfzString("file.sfz", file); }
+    void load(std::string file) { printf("RELOAD: %s\n", file.c_str()); synth.loadSfzString("file.sfz", file); }
 
     void noteOn(int delay, uint8_t number, float value) { synth.hdNoteOn(delay, number, value); }
     void noteOff(int delay, uint8_t number, float value) { synth.hdNoteOff(delay, number, value); }
@@ -39,6 +39,7 @@ EMSCRIPTEN_BINDINGS(CLASS_Synthesizer) {
   // Then expose the overridden `render` method from the wrapper class.
   class_<SfizzWrapper>("SfizzWrapper")
       .constructor<int32_t>()
+      .function("load", &SfizzWrapper::load)
       .function("noteOff", &SfizzWrapper::noteOff)
       .function("noteOn", &SfizzWrapper::noteOn)
       .function("cc", &SfizzWrapper::cc)
