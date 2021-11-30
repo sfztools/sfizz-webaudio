@@ -11,7 +11,7 @@ public:
         synth.loadSfzString("default.sfz", "<region> sample=*saw");
     }
 
-    void load(std::string file) { printf("RELOAD: %s\n", file.c_str()); synth.loadSfzString("file.sfz", file); }
+    void load(std::string file) { synth.loadSfzString("file.sfz", file); }
 
     void noteOn(int delay, uint8_t number, float value) { synth.hdNoteOn(delay, number, value); }
     void noteOff(int delay, uint8_t number, float value) { synth.hdNoteOff(delay, number, value); }

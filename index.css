@@ -1,0 +1,43 @@
+
+#keyboard {
+    position: relative;
+    margin: auto;
+    height: 100px;
+}
+
+
+.white {
+    width: 20px;
+    height: 100px;
+    position: absolute;
+    top: 0;
+    border-right-style: none;
+    border-width: 1px;
+    border-color: black;
+    background: white;
+    display: flex;
+    justify-content: center;
+    color: black;
+    align-items: flex-end;
+}
+
+.black {
+    width: 10px;
+    height: 60px;
+    position: absolute;
+    border-color: black;
+    border-width: 1px;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    color: white;
+}
+
+.black:hover {
+    background-color: dimgrey;
+}
+
+.white:hover {
+    background-color: lightgray;
+}
