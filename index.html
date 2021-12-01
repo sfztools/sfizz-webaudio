@@ -16,14 +16,30 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
 <link rel="stylesheet" type="text/css" href="./index.css">
-
 <div>
-  <div><textarea id="sfz-text" style="width:100%; height:200px;">// You can use CTRL + S to reload&#13;&#10;&#60;region&#62; sample=*saw</textarea></div>
-  <div>
-    <button id="audio-toggle" class="ui green button">Enable</button>
-    <button id="reload-text" class="ui disabled button">Reload</button>
+  <div id="overlay">
+    <div class="overlay-text">Click to enable WebAudio</div>
   </div>
-  <div id="keyboard"> </div>
+  <div id="control-row">
+    <div id="left-control-column">
+
+    </div>
+    <div id="editor">// You can use Ctrl + S to reload&#13;&#10;&#60;region&#62; sample=*saw</div>
+    <div id="right-control-column">
+      <button id="reload-text" class="ui disabled button">Reload</button>
+      <div class="ui label" style="transform: translate(-1px); "><div id="num-regions" class="detail">1</div> region(s)</div>
+      <div class="ui label" style="transform: translate(-1px); "><div id="active-voices" class="detail">0</div> active voice(s)</div>
+    </div>
+  </div>
+  </div>
+  <div id="keyboard-block">
+    <div id="keyboard-buttons">
+      <button id="octave-down" class="ui button">&#8249;</button>
+      <span>Octave</span>
+      <button id="octave-up" class="ui button">&#8250;</button>
+    </div>
+    <div id="keyboard"> </div>
+  </div>
   <div id="keyboard-prototype" hidden>
     <div id="white-prototype" class="white"></div>
     <div id="black-prototype" class="black"></div>
@@ -31,3 +47,8 @@
 </div>
 
 <script src="index.js" type="module"></script>
+
+<script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js" crossorigin="anonymous" integrity="sha256-T5QdmsCQO5z8tBAXMrCZ4f3RX8wVdiA0Fu17FGnU1vU=" ></script>
+<script>
+
+</script>

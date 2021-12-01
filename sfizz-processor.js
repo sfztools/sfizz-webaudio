@@ -61,6 +61,7 @@ class SfizzProcessor extends AudioWorkletProcessor {
         break;
       case 'text':
         this._synth.load(data.sfz);
+        this.port.postMessage({ numRegions: this._synth.numRegions() });
         break;
       case 'num_regions':
         this.port.postMessage({ numRegions: this._synth.numRegions() });

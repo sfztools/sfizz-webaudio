@@ -1,41 +1,117 @@
 import SfizzNode from './sfizz-node.js';
 
-class DemoApp {
+class SfizzApp {
 
   constructor() {
-    this._container = null;
-    this._toggleButton = null;
+    this._kbKeyShortcuts = [
+      'z', 's', 'x', 'd', 'c', 'v', 'g', 'b', 'h', 'n', 'j', 'm',
+      'q', '2', 'w', '3', 'e', 'r', '5', 't', '6', 'y', '7', 'u', 'i'
+    ]
+    this._overlay = null;
     this._keyboard = null;
+    this._keyboardButtons = null;
     this._reloadButton = null;
     this._context = null;
     this._synthNode = null;
     this._volumeNode = null;
     this._toggleState = false;
-    this._sfzText = null;
+    this._editor = null;
     this._ctrlDown = false;
     this._noteStates = new Array(128);
     for (let i = 0; i < 128; i++)
-      this._noteStates[i] = { midiState: false, mouseState: false, keyboardState: false, element: undefined, whiteKey: undefined };
+    this._noteStates[i] = { midiState: false, mouseState: false, keyboardState: false, element: undefined, whiteKey: undefined };
+    this._kbOctaveShift = 5;
+    this._numRegions = null;
+    this._activeVoices = null;
   }
 
   _initializeView() {
-    this._container = document.getElementById('demo-app');
-    this._toggleButton = document.getElementById('audio-toggle');
-    this._toggleButton.addEventListener('mouseup', () => this._handleToggle());
-    this._sfzText = document.getElementById('sfz-text');
+    this._overlay = document.getElementById('overlay');
     this._reloadButton = document.getElementById('reload-text');
     this._reloadButton.addEventListener(
-      'mouseup', () => this._post({ type: 'text', sfz: this._sfzText.value }));
-    this._toggleButton.disabled = false;
+      'mouseup', () => this._post({ type: 'text', sfz: this._editor.getValue() }));
     this._keyboard = document.getElementById('keyboard');
+    this._keyboardButtons = document.getElementById('keyboard-buttons');
+    this._keyboardButtons = document.getElementById('keyboard-buttons');
+    this._numRegions = document.getElementById('num-regions');
+    this._activeVoices = document.getElementById('active-voices');
+    
+    $('#octave-down').on('mousedown', () => {
+      if (this._kbOctaveShift > 0)
+        this._kbOctaveShift--;
+
+      this._updateKeyboardLabels();
+    });
+
+    $('#octave-up').on('mousedown', () => {
+      if (this._kbOctaveShift < 7)
+        this._kbOctaveShift++;
+
+      this._updateKeyboardLabels();
+    });
   }
 
   _setupKeyCaptures() {
     document.addEventListener('keydown', e => {
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault(); // Prevent the Save dialog to open
-        this._post({ type: 'text', sfz: this._sfzText.value })
+        this._post({ type: 'text', sfz: this._editor.getValue() })
+        return;
       }
+
+      if (this._editor.isFocused())
+        return;
+
+      this._kbKeyShortcuts.some((shortcut, idx) => {
+        if (e.key == shortcut) {
+          const note = this._kbOctaveShift * 12 + idx;
+          const state = this._noteStates[note];
+          if (state.keyboardState)
+            return;
+
+          if (!state.mouseState && !state.midiState)
+            this._noteOn(note, 0.8);
+
+          this._noteStates[note].keyboardState = true;
+          this._updateKeyboardState(note);
+
+          return true;
+        }
+      });
+    });
+
+    document.addEventListener('keyup', e => {
+      if (this._editor.isFocused())
+        return;
+
+      this._kbKeyShortcuts.some((shortcut, idx) => {
+        if (e.key == shortcut) {
+          const note = this._kbOctaveShift * 12 + idx;
+          const state = this._noteStates[note];
+
+          if (!state.mouseState && !state.midiState)
+            this._noteOff(note, 0.8);
+
+          this._noteStates[note].keyboardState = false;
+          this._updateKeyboardState(note);
+
+          return true;
+        }
+      });
+    });
+  }
+
+  _setupEditor() {
+    this._editor = ace.edit("editor");
+    ace.config.set('basePath', 'https://pagecdn.io/lib/ace/1.4.12/')
+    this._editor.setKeyboardHandler("ace/keyboard/sublime");
+    this._editor.commands.addCommand({
+      name: 'reload',
+      bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
+      exec: (editor) => {
+        this._post({ type: 'text', sfz: editor.getValue() })
+      },
+      readOnly: true, // false if this command should not apply in readOnly mode
     });
   }
 
@@ -96,29 +172,29 @@ class DemoApp {
 
     switch (command) {
       case 144: { // noteOn
-          const state = this._noteStates[number];
-          if (value > 0) {
-            if (!state.mouseState && !state.keyboardState)
-              this._noteOn(number, value);
+        const state = this._noteStates[number];
+        if (value > 0) {
+          if (!state.mouseState && !state.keyboardState)
+            this._noteOn(number, value);
 
-            this._noteStates[number].midiState = true;
-          } else {
-            if (!state.mouseState && !state.keyboardState)
-              this._noteOff(number, value);
-
-            this._noteStates[number].midiState = false;
-          }
-          this._updateKeyboardState(number);
-        }
-        break;
-      case 128: { // noteOff
-          const state = this._noteStates[number];
+          this._noteStates[number].midiState = true;
+        } else {
           if (!state.mouseState && !state.keyboardState)
             this._noteOff(number, value);
 
           this._noteStates[number].midiState = false;
-          this._updateKeyboardState(number);
         }
+        this._updateKeyboardState(number);
+      }
+        break;
+      case 128: { // noteOff
+        const state = this._noteStates[number];
+        if (!state.mouseState && !state.keyboardState)
+          this._noteOff(number, value);
+
+        this._noteStates[number].midiState = false;
+        this._updateKeyboardState(number);
+      }
         break;
       case 176: // cc
         this._post({ type: 'cc', number: number, value: value });
@@ -134,6 +210,18 @@ class DemoApp {
     }
   }
 
+  _onMessage(message) { 
+    if (message.data.numRegions)
+      this._numRegions.textContent = message.data.numRegions;
+
+    if (message.data.activeVoices != null) 
+      this._activeVoices.textContent = message.data.activeVoices;
+  }
+
+  _checkStatus() {
+    this._post({ type: 'active_voices'});
+  }
+
   async _initializeAudio() {
     this._context = new AudioContext();
     this._context.audioWorklet.addModule('./sfizz-processor.js').then(() => {
@@ -141,26 +229,13 @@ class DemoApp {
       this._volumeNode = new GainNode(this._context, { gain: 0.25 });
       this._synthNode.connect(this._volumeNode)
         .connect(this._context.destination);
-
-      this._toggleButton.classList.remove(['disabled', 'loading']);
+      this._synthNode.port.onmessage = this._onMessage.bind(this);
+      
+      window.setInterval(this._checkStatus.bind(this), 500)
+      this._overlay.style.display = "none";
       this._reloadButton.classList.remove('disabled');
-      this._handleToggle();
-    });
-  }
-
-  _handleToggle() {
-    this._toggleState = !this._toggleState;
-    if (this._toggleState) {
       this._context.resume();
-      this._toggleButton.textContent = 'Disable';
-      this._toggleButton.classList.remove('green');
-      this._toggleButton.classList.add('red');
-    } else {
-      this._context.suspend();
-      this._toggleButton.classList.remove('red');
-      this._toggleButton.classList.add('green');
-      this._toggleButton.textContent = 'Enable';
-    }
+    });
   }
 
   _post(message) {
@@ -180,6 +255,27 @@ class DemoApp {
     } else {
       this._noteStates[note].element.style.backgroundColor = 'steelblue';
     }
+  }
+
+  _updateKeyboardLabels() {
+    const start = this._kbOctaveShift * 12;
+    const stop = this._kbOctaveShift * 12 + this._kbKeyShortcuts.length;
+    this._noteStates.forEach((e, idx) => {
+      if (!e.element)
+        return;
+
+      if (idx < start || idx >= stop) {
+        e.element.textContent = "";
+      } else {
+        e.element.textContent = this._kbKeyShortcuts[idx - start];
+      }
+
+      if (e.keyboardState && !e.midiState && !e.mouseState)
+        this._noteOff(idx);
+      
+        e.keyboardState = false;
+      this._updateKeyboardState(idx);
+    });
   }
 
   _buildKeyboard() {
@@ -216,8 +312,8 @@ class DemoApp {
         const keyHeight = (cls == 'white') ? whiteKeyHeight : blackKeyHeight;
         key.addEventListener('mousedown', (e) => {
           const state = this._noteStates[note];
-          if (!state.midiState 
-              && !state.keyboardState)
+          if (!state.midiState
+            && !state.keyboardState)
             this._noteOn(note, e.offsetY / keyHeight);
 
           this._noteStates[note].mouseState = true;
@@ -227,7 +323,7 @@ class DemoApp {
           const state = this._noteStates[note];
           if (!state.midiState && !state.keyboardState)
             this._noteOff(note);
-            
+
           this._noteStates[note].mouseState = false;
           this._updateKeyboardState(note);
         });
@@ -235,15 +331,16 @@ class DemoApp {
           const state = this._noteStates[note];
           if (state.mouseState && !state.midiState && !state.keyboardState)
             this._noteOff(note);
-            
+
           this._noteStates[note].mouseState = false;
           this._updateKeyboardState(note);
         });
         key.addEventListener('mouseenter', (e) => {
           const state = this._noteStates[note];
-          if ((e.buttons & 1) && !state.midiState && !state.keyboardState) {
-            this._noteOn(note, e.offsetY / keyHeight);
-            
+          if ((e.buttons & 1)) {
+            if (!state.midiState && !state.keyboardState)
+              this._noteOn(note, e.offsetY / keyHeight);
+
             this._noteStates[note].mouseState = true;
           }
           this._updateKeyboardState(note);
@@ -266,12 +363,18 @@ class DemoApp {
       makeOctave((i - 1) * octaveWidth + 2 * whiteKeyWidth, i);
     makeKey(7 * octaveWidth + 2 * whiteKeyWidth, 'c8', 'white');
     this._keyboard.lastChild.style.borderRight = 'solid 1px';
-    this._keyboard.style.width = (whiteCount * whiteKeyWidth).toString() + 'px'; // resize the keyboard to center it
+    const keyBoardWidth = whiteCount * whiteKeyWidth;
+    this._keyboard.style.width = keyBoardWidth.toString() + 'px'; // resize the keyboard to center it
+    const buttonTranslation = -keyBoardWidth / 2 + this._keyboardButtons.offsetWidth / 2;
+    this._keyboardButtons.style.transform = 'translate(' + buttonTranslation.toString() + 'px)';
+    console.log('translate(' + buttonTranslation.toString() + 'px)');
+    this._updateKeyboardLabels();
   }
 
   onWindowLoad() {
     this._initializeView();
     this._buildKeyboard();
+    this._setupEditor();
     document.body.addEventListener('click', () => {
       this._initializeAudio();
       this._setupKeyCaptures();
@@ -280,5 +383,5 @@ class DemoApp {
   }
 }
 
-const demoApp = new DemoApp();
-window.addEventListener('load', () => demoApp.onWindowLoad());
+const sfizzApp = new SfizzApp();
+window.addEventListener('load', () => sfizzApp.onWindowLoad());
