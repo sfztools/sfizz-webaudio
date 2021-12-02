@@ -18,7 +18,8 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v11
       - name: Create Build Environment
         shell: bash
-        working-directory:         run: cmake -E make_directory build
+        working-directory: ${{runner.workspace}}/sfizz-webaudio
+        run: cmake -E make_directory build
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/sfizz-webaudio/build
