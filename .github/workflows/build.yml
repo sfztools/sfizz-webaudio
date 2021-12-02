@@ -32,9 +32,13 @@ jobs:
           cmake --build . --config "$BUILD_TYPE" -j 2
           echo "export default Module;" >> sfizz.wasm.js
       - name: Inspect directory
-        run: ls -al build
+        working-directory: ${{runner.workspace}}
+        run: |
+          ls -al
+          ls -al build
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
+        working-directory: ${{runner.workspace}}
         with:
           name: sfizz-webaudio
           path: |
