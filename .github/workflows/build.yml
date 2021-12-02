@@ -31,6 +31,8 @@ jobs:
         run: |
           cmake --build . --config "$BUILD_TYPE" -j 2
           echo "export default Module;" >> sfizz.wasm.js
+      - name: Inspect directory
+        run: ls -al build
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
