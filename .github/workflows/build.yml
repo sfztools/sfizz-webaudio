@@ -60,6 +60,13 @@ jobs:
         uses: actions/download-artifact@v2
       - name: Inspect directory
         run: ls -alFR
+      - name: Upload to GitHub pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: www
+          publish_dir: ./sfizz-webaudio
+          force_orphan: true
       - name: Rezip artifact
         uses: montudor/action-zip@v1
         with:
