@@ -18,24 +18,31 @@ class SfizzApp {
     this._editor = null;
     this._ctrlDown = false;
     this._noteStates = new Array(128);
-    for (let i = 0; i < 128; i++)
-    this._noteStates[i] = { midiState: false, mouseState: false, keyboardState: false, element: undefined, whiteKey: undefined };
+    for (let i = 0; i < 128; i++) {
+      this._noteStates[i] = { midiState: false, mouseState: false, keyboardState: false, element: undefined, whiteKey: undefined };
+    }
     this._kbOctaveShift = 5;
     this._numRegions = null;
     this._activeVoices = null;
+    this._leftControlColumn = null;
+    this._sliders = new Array(512);
+    for (let i = 0; i < 512; i++) {
+      this._sliders[i] = { used: false, label: '', default: 0.0, element: undefined, input: undefined };
+    }
   }
 
   _initializeView() {
     this._overlay = document.getElementById('overlay');
     this._reloadButton = document.getElementById('reload-text');
     this._reloadButton.addEventListener(
-      'mouseup', () => this._post({ type: 'text', sfz: this._editor.getValue() }));
+      'mouseup', () => this._reloadSfz());
     this._keyboard = document.getElementById('keyboard');
     this._keyboardButtons = document.getElementById('keyboard-buttons');
     this._keyboardButtons = document.getElementById('keyboard-buttons');
     this._numRegions = document.getElementById('num-regions');
     this._activeVoices = document.getElementById('active-voices');
-    
+    this._leftControlColumn = document.getElementById('left-control-column');
+
     $('#octave-down').on('mousedown', () => {
       if (this._kbOctaveShift > 0)
         this._kbOctaveShift--;
@@ -51,11 +58,25 @@ class SfizzApp {
     });
   }
 
+  _reloadSfz() { 
+
+    this._sliders.forEach((slider) => {
+      slider.used = false;
+      slider.element = undefined;
+      slider.input = undefined;
+    });
+
+    while (this._leftControlColumn.firstChild)
+      this._leftControlColumn.removeChild(this._leftControlColumn.firstChild);
+
+    this._post({ type: 'text', sfz: this._editor.getValue() });
+  }
+
   _setupKeyCaptures() {
     document.addEventListener('keydown', e => {
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault(); // Prevent the Save dialog to open
-        this._post({ type: 'text', sfz: this._editor.getValue() })
+        this._reloadSfz();
         return;
       }
 
@@ -108,9 +129,7 @@ class SfizzApp {
     this._editor.commands.addCommand({
       name: 'reload',
       bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
-      exec: (editor) => {
-        this._post({ type: 'text', sfz: editor.getValue() })
-      },
+      exec: (editor) => this._reloadSfz(),
       readOnly: true, // false if this command should not apply in readOnly mode
     });
   }
@@ -119,10 +138,16 @@ class SfizzApp {
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess({ name: "midi", sysex: false })
         .then((midiAccess) => {
-          console.log(midiAccess);
-          var inputs = midiAccess.inputs;
-          for (var input of midiAccess.inputs.values())
+          var devicesNames = [];
+          midiAccess.inputs.forEach((input, idx) => {
             input.onmidimessage = this._dispatchMIDIMessage.bind(this);
+            devicesNames.push(input.name);
+          })
+          
+          if (devicesNames.length > 0) {
+            document.getElementById("connected-devices").textContent = 
+              'Connected devices: ' + devicesNames.join(', ');
+          }
         }, () => console.log("MIDI connection failure"));
     } else {
       console.log('WebMIDI is not supported in this browser.');
@@ -198,6 +223,14 @@ class SfizzApp {
         break;
       case 176: // cc
         this._post({ type: 'cc', number: number, value: value });
+        var element = this._sliders[number].element;
+        if (element != undefined)
+          element.slider('set value', value, false);
+
+        var input = this._sliders[number].input;
+        if (input != undefined)
+          input.val(parseFloat(value.toFixed(4)));
+
         break;
       case 208: // cc
         this._post({ type: 'aftertouch', value: value });
@@ -211,15 +244,52 @@ class SfizzApp {
   }
 
   _onMessage(message) { 
-    if (message.data.numRegions)
+    if (message.data.numRegions != null)
       this._numRegions.textContent = message.data.numRegions;
 
     if (message.data.activeVoices != null) 
       this._activeVoices.textContent = message.data.activeVoices;
-  }
 
-  _checkStatus() {
-    this._post({ type: 'active_voices'});
+    if (message.data.cc != null) {
+      var slider = this._sliders[message.data.cc];
+      slider.used = true;
+      if (message.data.label != '')
+        slider.label = message.data.label;
+      else
+        slider.label = 'CC ' + message.data.cc;
+
+      slider.default = message.data.default;
+
+
+      const sliderId = 'slider-' + message.data.cc;
+      const inputId = 'slider-input-' + message.data.cc;
+      var newSlider = document.createElement('div');
+      newSlider.innerHTML = `<span>${slider.label}</span> <div class="ui slider" id="${sliderId}"></div> <div class="ui input"><input type="text" id="${inputId}"></div>`
+      this._leftControlColumn.appendChild(newSlider);
+
+      var jqSlider = $('#' + sliderId).attr('class', 'ui slider');
+      var jqInput = $('#' + inputId);
+      jqSlider.slider({
+          min: 0, max: 1, step: 0,
+          onMove: (element, value) => {
+            this._post({ type: 'cc', number: message.data.cc, value: value });
+            jqInput.val(parseFloat(value.toFixed(4)));
+          }
+        })
+        .slider('set value', message.data.value)
+        .on('dblclick', () => jqSlider.slider('set value', message.data.default ));
+      jqInput.on('change', () => {
+        const floatVal = parseFloat(jqInput.val());
+        if (floatVal != NaN && floatVal >= 0 && floatVal <= 1) {
+          jqSlider.slider('set value', floatVal) 
+        } else {
+          jqInput.val(jqSlider.slider('get value'));
+        }
+      });
+
+      slider.element = jqSlider;
+      slider.input = jqInput;
+    }
   }
 
   async _initializeAudio() {
@@ -231,10 +301,10 @@ class SfizzApp {
         .connect(this._context.destination);
       this._synthNode.port.onmessage = this._onMessage.bind(this);
       
-      window.setInterval(this._checkStatus.bind(this), 500)
       this._overlay.style.display = "none";
       this._reloadButton.classList.remove('disabled');
       this._context.resume();
+      this._reloadSfz();
     });
   }
 
@@ -365,9 +435,7 @@ class SfizzApp {
     this._keyboard.lastChild.style.borderRight = 'solid 1px';
     const keyBoardWidth = whiteCount * whiteKeyWidth;
     this._keyboard.style.width = keyBoardWidth.toString() + 'px'; // resize the keyboard to center it
-    const buttonTranslation = -keyBoardWidth / 2 + this._keyboardButtons.offsetWidth / 2;
-    this._keyboardButtons.style.transform = 'translate(' + buttonTranslation.toString() + 'px)';
-    console.log('translate(' + buttonTranslation.toString() + 'px)');
+    this._keyboardButtons.style.width = keyBoardWidth.toString() + 'px';
     this._updateKeyboardLabels();
   }
 

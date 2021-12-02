@@ -1,7 +1,8 @@
 #control-row {
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    /* justify-content: center; */
+    width: 100%;
     padding: 5px;
 }
 
@@ -9,9 +10,37 @@
     margin: 5px;
 }
 
+#left-control-column {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+}
+
+#left-control-column .ui.slider {
+    width: 150px;
+}
+
+#left-control-column .ui.input {
+    width: 80px;
+    height: 30px;
+    margin-left: 10px;
+}
+
+#left-control-column > div {
+    width: fit-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#left-control-column > div > span {
+    width: 100px;
+}
+
 #right-control-column {
     display: flex;
     flex-direction: column;
+    width: fit-content;
 }
 
 #right-control-column > div > span {
@@ -45,7 +74,7 @@
 }
 
 #editor {
-    width: 800px;
+    flex: 1;
     height: 500px;
 }
 

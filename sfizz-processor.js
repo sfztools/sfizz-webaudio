@@ -28,6 +28,7 @@ class SfizzProcessor extends AudioWorkletProcessor {
     this._synth = new Module.SfizzWrapper(sampleRate);
     this._leftBuffer = new WASMAudioBuffer(Module, NUM_FRAMES, 1, 1);
     this._rightBuffer = new WASMAudioBuffer(Module, NUM_FRAMES, 1, 1);
+    this._activeVoices = 0;
     this.port.onmessage = this._handleMessage.bind(this);
   }
 
@@ -37,7 +38,11 @@ class SfizzProcessor extends AudioWorkletProcessor {
     this._synth.render(this._leftBuffer.getPointer(), this._rightBuffer.getPointer(), NUM_FRAMES);
     outputs[0][0].set(this._leftBuffer.getF32Array());
     outputs[1][0].set(this._rightBuffer.getF32Array());
-
+    const activeVoices = this._synth.numActiveVoices();
+    if (activeVoices != this._activeVoices) {
+      this.port.postMessage({ activeVoices: this._synth.numActiveVoices() });
+      this._activeVoices = activeVoices;
+    }
     return true;
   }
 
@@ -61,6 +66,23 @@ class SfizzProcessor extends AudioWorkletProcessor {
         break;
       case 'text':
         this._synth.load(data.sfz);
+        const usedCCs = this._synth.usedCCs();
+        for (let i = 0; i < usedCCs.size(); i++) {
+          const cc = usedCCs.get(i);
+          var ccLabel = this._synth.ccLabel(cc);
+          // Default names
+          if (ccLabel == '') {
+            switch(cc) {
+              case 7: ccLabel = 'Volume'; break;
+              case 10: ccLabel = 'Pan'; break;
+              case 11: ccLabel = 'Expression'; break;
+            }              
+          }
+          
+          const ccValue = this._synth.ccValue(cc);
+          const ccDefault = this._synth.ccDefault(cc);
+          this.port.postMessage({ cc: cc, label: ccLabel, value: ccValue, default: ccDefault });
+        }
         this.port.postMessage({ numRegions: this._synth.numRegions() });
         break;
       case 'num_regions':
