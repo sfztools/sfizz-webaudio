@@ -47,7 +47,7 @@ jobs:
   upload:
     name: Create release and upload artifacts
     needs:
-      - build_for_linux
+      - build
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
