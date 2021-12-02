@@ -47,7 +47,7 @@ jobs:
              index.css
              sfizz-node.js
              sfizz-processor.js
-             build/sfizz-wasm.js
+             build/sfizz.wasm.js
              util/WASMAudioBuffer.js
 
   upload:
