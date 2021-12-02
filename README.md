@@ -1,6 +1,6 @@
 ## sfizz WebAudio/WebMidi demo
 
-Live demo: https://sfz.tools/sfizz-webaudio/
+Live demo (requires Chrome or one of its derivatives): https://sfz.tools/sfizz-webaudio/
 
 This repository contains a HTML/Javascript/WebAssembly front-end for [sfizz](https://sfz.tools/sfizz), which allows prototyping of virtual instruments in the SFZ format.
 Right now only generators and embedded sample files are supported. This uses the `emscripten` branch off my sfizz's fork, available [here](https://github.com/paulfd/sfizz/tree/emscripten).
