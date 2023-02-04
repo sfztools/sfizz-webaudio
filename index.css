@@ -115,7 +115,7 @@
 }
 
 #overlay {
-    background: rgba(0, 0, 0, .95); 
+    background: rgba(0, 0, 0, .9); 
     color: #fff;
     cursor: pointer;
     width:      100%;
