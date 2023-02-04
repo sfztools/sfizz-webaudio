@@ -14,7 +14,6 @@ mkdir build
 cd build
 emcmake cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
-echo "export default Module;" >> sfizz.wasm.js
 ```
 
 From the `build` directory, you may then host the result on `localhost:8000` using python as
