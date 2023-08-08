@@ -56,6 +56,9 @@
 <script src="index.js" type="module"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.14.0/src/ace.js"></script>
+<script src="./ace/mode-sfz.js"></script>
 <script>
-
+  var editor = ace.edit("editor");
+  // editor.setTheme("ace/theme/monokai");
+  editor.session.setMode("ace/mode/sfz");
 </script>
