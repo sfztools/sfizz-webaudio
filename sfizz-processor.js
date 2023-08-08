@@ -21,6 +21,8 @@
 import Module from './build/sfizz.wasm.js';
 import WASMAudioBuffer from './util/WASMAudioBuffer.js';
 
+const SfizzModule = new Module();
+
 // Web Audio API's render block size
 const NUM_FRAMES = 128;
 
@@ -29,9 +31,9 @@ class SfizzProcessor extends AudioWorkletProcessor {
     super();
     // Create an instance of Synthesizer and WASM memory helper. Then set up an
     // event handler for MIDI data from the main thread.
-    this._synth = new Module.SfizzWrapper(sampleRate);
-    this._leftBuffer = new WASMAudioBuffer(Module, NUM_FRAMES, 1, 1);
-    this._rightBuffer = new WASMAudioBuffer(Module, NUM_FRAMES, 1, 1);
+    this._synth = new SfizzModule.SfizzWrapper(sampleRate);
+    this._leftBuffer = new WASMAudioBuffer(SfizzModule, NUM_FRAMES, 1, 1);
+    this._rightBuffer = new WASMAudioBuffer(SfizzModule, NUM_FRAMES, 1, 1);
     this._activeVoices = 0;
     this.port.onmessage = this._handleMessage.bind(this);
   }

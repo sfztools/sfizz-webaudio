@@ -12,7 +12,7 @@ add_executable(sfizz-webaudio)
 target_sources(sfizz-webaudio PRIVATE sfizz_webaudio.cpp)
 target_link_libraries(sfizz-webaudio PRIVATE sfizz::sfizz)
 set_target_properties(sfizz-webaudio PROPERTIES 
-    LINK_FLAGS "--bind -s ENVIRONMENT=web -s ALLOW_MEMORY_GROWTH=1 -s SINGLE_FILE=1 -s WASM=1 -s WASM_ASYNC_COMPILATION=0"
+LINK_FLAGS "--bind -s ENVIRONMENT=web -s ALLOW_MEMORY_GROWTH=1 -s SINGLE_FILE=1 -s WASM=1 -s WASM_ASYNC_COMPILATION=0 -s EXPORTED_FUNCTIONS=\"['_malloc']\" -s EXPORT_ES6=1"
     OUTPUT_NAME sfizz.wasm
 )
 
